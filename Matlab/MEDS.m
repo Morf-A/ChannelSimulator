@@ -26,16 +26,10 @@ teta = createPhasesByMEDS(N(1));
 %Ts = 5000*10^(-6); 
 Ts=1/5000;
 
+
+
 for z=1:rays
-    %считаем действительную часть и мнимую часть отдельно
-    for i=1:2
-        for k=1:K
-            for n=1:N(i)
-                temp=c(i,z)*cos(2*pi*f(i,n)*k*Ts+teta(i,n));
-                mu(z,i,k) = mu(z,i,k)+temp;
-            end
-        end
-    end
+    mu(z,:,:) = createRayCoeff(c(:,z),f,teta,Ts,K,N);
 end
 
 
@@ -55,6 +49,3 @@ x=squeeze(mu(1,1,:)+1j*mu(1,2,:));
  hold on;
  plot(correlation(x2,M));
  plot(real(R(1))*besselj(0,2*pi*fmax*Ts*(0:M)),'r-.');
-
-
-
