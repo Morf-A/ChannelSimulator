@@ -10,29 +10,17 @@ sigma = sqrt(10.^(power./10)); % вычислим дисперсию
 %Задаём коэффициенты, согласно MEDS
 
 %зададим коэффициенты усиления
-c = zeros(2,rays);
-%c = createGainsByMEDS(sigma, N(1));
+c = createGainsByMEDS(sigma, N(1));
 
 %зададим частоту доплеровского смещения
-f = zeros(2,max(N));
 
 %fray=800*10^6; %частота луча. (Гц)
 %fmax = fray/(3*10^8); %Максимальное доплеровское смещение
-
 fmax = 300;
-for i=1:2
-    for n=1:N(i)
-        f(i,n)=fmax*sin(pi/(2*N(i))*(n-0.5));
-    end
-end
+f = createFrequenciesByMEDS(fmax, N(1));
 
 % зададим фазы
-teta=zeros(2,max(N));
-for i=1:2
-    for n=1:N(i)
-        teta(i,n) = 2*pi*rand(1)-pi;
-    end
-end
+teta = createPhasesByMEDS(N(1));
 
 %Частота дискретизации 
 %Ts = 5000*10^(-6); 
@@ -54,11 +42,11 @@ end
 x=squeeze(mu(1,1,:)+1j*mu(1,2,:));
 
  M=30;
-% R=correlation(x,M);
-% 
+ R=correlation(x,M);
+
  x1=squeeze(mu(1,1,:));
  x2=squeeze(mu(1,2,:));
-% 
+
 % R2=correlation(x1,M);
 
 % RR =  correlation(x1,M)+correlation(x2,M);
