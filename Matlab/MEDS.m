@@ -11,11 +11,7 @@ sigma = sqrt(10.^(power./10)); % вычислим дисперсию
 
 %зададим коэффициенты усиления
 c = zeros(2,rays);
-for i=1:2
-    for z=1:rays
-        c(i,z) = sigma(z)*sqrt(2/N(i));
-    end
-end
+%c = createGainsByMEDS(sigma, N(1));
 
 %зададим частоту доплеровского смещения
 f = zeros(2,max(N));
@@ -56,20 +52,21 @@ end
 
 
 x=squeeze(mu(1,1,:)+1j*mu(1,2,:));
-M=30;
-R=correlation(x,M);
 
-x1=squeeze(mu(1,1,:));
-x2=squeeze(mu(1,2,:));
+ M=30;
+% R=correlation(x,M);
+% 
+ x1=squeeze(mu(1,1,:));
+ x2=squeeze(mu(1,2,:));
+% 
+% R2=correlation(x1,M);
 
-R2=correlation(x1,M);
-
-%RR =  correlation(x1,M)+correlation(x2,M);
-hold off;
-plot(correlation(x1,M));
-hold on;
+% RR =  correlation(x1,M)+correlation(x2,M);
+ hold off;
+ plot(correlation(x1,M));
+ hold on;
  plot(correlation(x2,M));
-% plot(real(R(1))*besselj(0,2*pi*fmax*Ts*(0:M)),'r-.');
+ plot(real(R(1))*besselj(0,2*pi*fmax*Ts*(0:M)),'r-.');
 
 
 
