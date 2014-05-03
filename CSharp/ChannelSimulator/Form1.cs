@@ -15,13 +15,15 @@ namespace ChannelSimulator
 {
     public partial class Form1 : Form
     {
-        private double medsGains;
-        private double medsFrequencies;
-        private double medsPhases;
+        private MWArray medsGains;
+        private MWArray medsFrequencies;
+        private MWArray medsPhases;
 
         private double jmGains;
         private double jmFrequencies;
         private double jmPhases;
+
+        public double[] profileEPA = { 1.0000, 0.8913, 0.7943, 0.7079, 0.3981, 0.1380, 0.0912 };
 
         public MSimulator simulator;
 
@@ -31,8 +33,9 @@ namespace ChannelSimulator
             comboBox1.SelectedIndex = 0;
             updateSinusoidsNumber();
 
-
-            simulator= new MSimulator();
+           
+            
+            simulator = new MSimulator();
         }
 
         private void textBox3_TextChanged(object sender, EventArgs e) 
@@ -54,44 +57,97 @@ namespace ChannelSimulator
             updateSinusoidsNumber();
         }
 
-        /*
-        public double getGains()
+        
+        public MWArray getGains()
         {
             if (radioButtonMEDS.Checked) {
                 if (medsGains == null) {
-                    medsGains = simulator.createGainsByMEDS();
+
+                    MWArray outData = new MWNumericArray(profileEPA);
+                    medsGains = simulator.createGainsByMEDS(outData, Convert.ToDouble(textBox3.Text));
                 }  
                 return medsGains;    
             } else {
                 if (jmGains == null) {
-                    jmGains = simulator.createGainsByJM();
+                   // jmGains = simulator.createGainsByJM();
+                }
+                return jmGains;
+            }
+        }
+        
+        public MWArray getFrequencies()
+        {
+            if (radioButtonMEDS.Checked)
+            {
+                if (medsFrequencies == null)
+                {
+                    medsFrequencies = simulator.createFrequenciesByMEDS(
+                            Convert.ToDouble(textBox1.Text),
+                            Convert.ToDouble(textBox3.Text)
+                    );
+                }
+                return medsFrequencies;
+            } else {
+                if (jmGains == null)
+                {
+                    // jmGains = simulator.createGainsByJM();
                 }
                 return jmGains;
             }
         }
 
-        public double getFrequencies()
+        public MWArray getPhases()
         {
-            if (radioButtonMEDS.Checked) {
-                return medsGains;
+            if (radioButtonMEDS.Checked)
+            {
+                if (medsPhases == null)
+                {
+                    medsPhases = simulator.createPhasesByMEDS(Convert.ToDouble(textBox3.Text));
+                }
+                return medsPhases;
             } else {
+                if (jmGains == null)
+                {
+                    // jmGains = simulator.createGainsByJM();
+                }
                 return jmGains;
             }
         }
-
-        public double getPhases()
-        {
-            if (radioButtonMEDS.Checked) {
-                return medsPhases;
-            } else {
-                return jmPhases;
-            }
-        }
-         * */
+        
         
         private void button1_Click(object sender, EventArgs e)
         {
-           simulator.createRayCoeff();
+            double[] d = {0.0171, 0.0169};
+            MWArray outData = new MWNumericArray(d);
+
+            double[] d2 = {57, 58};
+            MWArray outDataN = new  MWNumericArray(d2);
+
+            MWArray res = simulator.createRayCoeff(
+                    outData,
+                    getFrequencies(),
+                    getPhases(),
+                    Convert.ToDouble(textBox2.Text),
+                    Convert.ToDouble(textBox4.Text),
+                    outDataN
+            );
+
+
+            MWNumericArray descriptor = (MWNumericArray)res; //выбор первого элемента из массива MWArray и преобразование в числовой тип MWNumericArray
+            double[,] d_descriptor = (double[,])descriptor.ToArray(MWArrayComponent.Real);//преобразование массива MWNUmericArray  к масииву типа double  
+
+            for (int i = 0; i < 50; i++)//вывод массива d_descriptor в RichBox
+            {
+                richTextBox1.Text += i.ToString() + '\t';
+                richTextBox1.Text += d_descriptor[0, i].ToString("0.000") + '\n';//преобразование элеметна массива double в string
+            }
+
+            for (int i = 0; i < 50; i++)//вывод массива d_descriptor в RichBox
+            {
+                richTextBox2.Text += i.ToString() + '\t';
+                richTextBox2.Text += d_descriptor[1, i].ToString("0.000") + '\n';//преобразование элеметна массива double в string
+            }
+
         }
     }
 }
