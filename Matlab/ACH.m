@@ -49,7 +49,7 @@ for k=1:K
 end
 
 plot(erfc(abs(ach(:,1)).^2*0.5)); %вероятность ошибки.
-
+surf(ach(1:100,1:100).*conj(ach(1:100,1:100)));
 %csv right. Передать файл и название массива
 
 %surf(real(ach));
