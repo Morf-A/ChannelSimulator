@@ -23,7 +23,9 @@ namespace ChannelSimulator
         private double jmFrequencies;
         private double jmPhases;
 
-        public double[] profileEPA = { 1.0000, 0.8913, 0.7943, 0.7079, 0.3981, 0.1380, 0.0912 };
+        public double[] profileEPA = {1.0000, 0.8913, 0.7943, 0.7079, 0.3981, 0.1380, 0.0912};
+        public double[] profileEVA = { 0, -1.5, -1.4, -3.6, -0.6, -9.1, -7.0, -12.0, -16, 9 };
+        public double[] profileETU = { -1, -1, -1, 0, 0, 0, -3, -5, -7 };
 
         public MSimulator simulator;
 
@@ -31,10 +33,7 @@ namespace ChannelSimulator
         {
             InitializeComponent();
             comboBox1.SelectedIndex = 0;
-            updateSinusoidsNumber();
-
-           
-            
+            updateSinusoidsNumber();          
             simulator = new MSimulator();
         }
 
@@ -117,11 +116,24 @@ namespace ChannelSimulator
         
         private void button1_Click(object sender, EventArgs e)
         {
+            richTextBox1.Text = "";
+            richTextBox2.Text = "";
+
+            
+            MWNumericArray c = (MWNumericArray)getGains();
+
+
+            double[,] c2 = (double[,])c.ToArray(MWArrayComponent.Real);
+            с2[,1];
             double[] d = {0.0171, 0.0169};
             MWArray outData = new MWNumericArray(d);
 
-            double[] d2 = {57, 58};
-            MWArray outDataN = new  MWNumericArray(d2);
+            MWArray sinudoidsCount = new MWNumericArray(
+                    new double[2] {
+                        Convert.ToDouble(textBox3.Text),
+                        Convert.ToDouble(textBox5.Text) 
+                    }
+            );
 
             MWArray res = simulator.createRayCoeff(
                     outData,
@@ -129,7 +141,7 @@ namespace ChannelSimulator
                     getPhases(),
                     Convert.ToDouble(textBox2.Text),
                     Convert.ToDouble(textBox4.Text),
-                    outDataN
+                    sinudoidsCount
             );
 
 
@@ -147,6 +159,11 @@ namespace ChannelSimulator
                 richTextBox2.Text += i.ToString() + '\t';
                 richTextBox2.Text += d_descriptor[1, i].ToString("0.000") + '\n';//преобразование элеметна массива double в string
             }
+
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
 
         }
     }
