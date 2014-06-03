@@ -115,6 +115,12 @@ namespace ChannelSimulator
         
         private void button1_Click(object sender, EventArgs e)
         {
+            button2.Enabled = true;
+            button3.Enabled = true;
+            button4.Enabled = true;
+            button5.Enabled = true;
+            button8.Enabled = true;
+
             chart1.Series[0].Points.Clear();
             chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Column;
 
@@ -188,6 +194,34 @@ namespace ChannelSimulator
             for (int i = 0; i < correlationLength; i++) {
                 chart1.Series[0].Points.AddY(correlation[i, 0]);
             }
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            chart1.Series[0].Points.Clear();
+            chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Spline;
+
+            int correlationLength = 90;
+            int rayLength = rays[0].Length;
+            double[] ray = new double[rayLength];
+            for (int i = 0; i < rays[0].Length / 2; i++) {
+                ray[i] = rays[0][0, i];
+            }
+            MWNumericArray m_correlation = (MWNumericArray)simulator.psdd(new MWNumericArray(ray), correlationLength);
+            double[,] correlation = (double[,])m_correlation.ToArray(MWArrayComponent.Real);
+            for (int i = 0; i < correlationLength; i++) {
+                chart1.Series[0].Points.AddY(correlation[i, 0]);
+            }
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            button6.Enabled = true;
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            button7.Enabled = true;
         }
     }
 }
