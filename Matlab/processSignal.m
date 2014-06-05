@@ -1,4 +1,4 @@
 function result = processSignal(signal, channel)
-    result = signal+channel;
+    result = signal.^5;
 end
 

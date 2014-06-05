@@ -10,6 +10,9 @@ using System.Numerics;
 using System.IO;
 using System.Globalization;
 
+
+using System.Windows.Forms.DataVisualization.Charting;
+
 using MathWorks.MATLAB.NET.Utility;
 using MathWorks.MATLAB.NET.Arrays;
 using MATLABchannelSimulator;
@@ -30,8 +33,10 @@ namespace ChannelSimulator
         double[] timeETU =  { 0, 50, 120, 200, 230, 500, 1600, 2300, 5000 };
 
         public double[][,] rays;
-        public double[,] frecResponse;
+        public double[][,] frecResponse = new double[2][,];
         public List<double> signal;
+
+        public string sinusoidsNumberPred;
 
         public MSimulator simulator;
 
@@ -39,6 +44,7 @@ namespace ChannelSimulator
         {
             InitializeComponent();
             comboBox1.SelectedIndex = 0;
+            sinusoidsNumberPred = textBox3.Text;
             updateSinusoidsNumber();          
             simulator = new MSimulator();
         }
@@ -50,16 +56,38 @@ namespace ChannelSimulator
 
         private void updateSinusoidsNumber()
         {
-            int realSinusoidNumber = Convert.ToInt32(textBox3.Text);
-            if (radioButtonMEDS.Checked) {
-                realSinusoidNumber++;
+            try {
+                int realSinusoidNumber = Convert.ToInt32(textBox3.Text);
+                if (textBox3.Text.Length > 3 || realSinusoidNumber < 0) {
+                    throw new Exception();
+                }
+                if (radioButtonMEDS.Checked) {
+                    realSinusoidNumber++;
+                }
+                textBox5.Text = Convert.ToString(realSinusoidNumber);
+                button1.Enabled = true;
+                sinusoidsNumberPred = textBox3.Text;
+            } catch (Exception e) {
+                if (textBox3.Text == "") {
+                    button1.Enabled = false;
+                    sinusoidsNumberPred = "";
+                }
+                else {
+                    textBox3.Text = sinusoidsNumberPred;
+                }
             }
-            textBox5.Text = Convert.ToString(realSinusoidNumber);
         }
 
         private void radioButtonMEDS_CheckedChanged(object sender, EventArgs e)
         {
             updateSinusoidsNumber();
+            if (radioButtonMEDS.Checked) {
+                numericUpDown1.Enabled = true;
+                label7.Enabled = true;
+            } else{
+                numericUpDown1.Enabled = false;
+                label7.Enabled = false;
+            }
         }
 
         public double[] getCurrentProfileTime()
@@ -130,7 +158,7 @@ namespace ChannelSimulator
         {
             MWArray result = null;
             if (radioButtonMEDS.Checked) {
-                result = simulator.createPhasesByMEDS(Convert.ToDouble(textBox3.Text));
+                result = simulator.createPhasesByMEDS(Convert.ToDouble(textBox3.Text), Convert.ToInt32(numericUpDown1.Value));
             } else {
                 result = simulator.createPhasesByJM(Convert.ToDouble(textBox3.Text)); 
             }
@@ -144,10 +172,9 @@ namespace ChannelSimulator
             button3.Enabled = true;
             button4.Enabled = true;
             button5.Enabled = true;
-            button8.Enabled = true;
+            //button8.Enabled = true;
 
-            chart1.Series[0].Points.Clear();
-            chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Column;
+            updateChart(SeriesChartType.Column);
 
             MWNumericArray m_gains = (MWNumericArray)getGains();
 
@@ -202,10 +229,25 @@ namespace ChannelSimulator
 
         }
 
+        private void updateChart(SeriesChartType chartType)
+        {
+            chart1.Legends.Clear();
+
+            chart1.Series[0].Points.Clear();
+            chart1.Series[0].Name = "XXX";
+            chart1.Series[0].ChartType = chartType;
+
+            
+            if (chart1.Series.Count == 2) {
+                chart1.Series[1].Points.Clear();
+                chart1.Series.Remove(chart1.Series[1]);
+                chart1.ChartAreas.Remove(chart1.ChartAreas[1]);
+            }
+        }
+
         private void button3_Click(object sender, EventArgs e)
         {
-            chart1.Series[0].Points.Clear();
-            chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Spline;
+            updateChart(SeriesChartType.Spline);
 
             int correlationLength = 30;
             int rayLength = rays[0].Length;
@@ -223,8 +265,7 @@ namespace ChannelSimulator
 
         private void button4_Click(object sender, EventArgs e)
         {
-            chart1.Series[0].Points.Clear();
-            chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Spline;
+            updateChart(SeriesChartType.Spline);
 
             int correlationLength = 90;
             int rayLength = rays[0].Length;
@@ -241,36 +282,59 @@ namespace ChannelSimulator
 
         private void button5_Click(object sender, EventArgs e)
         {
-            chart1.Series[0].Points.Clear();
-            chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Spline;
-            int frecCount = 999;
 
+            int frecCount = 999;
             int raysCount = getCurrentProfile().Length;
             int timeCount = Convert.ToInt32(textBox4.Text);
 
-            // Почему у нас в начале идёт время, а в конце лучи - ??? Хотя метод принимает в начале лучи, а в конце время... 
-            double[, ,] threeDimensionsRays = new double[timeCount, 2, raysCount];
+            // Почему у нас в начале идёт время- ??? 
+            double[, ,] threeDimensionsRays = new double[timeCount, raysCount, 2];
 
             for (int rayIndex = 0; rayIndex < raysCount; rayIndex++) {
                 for (int numberPiece = 0; numberPiece < 2; numberPiece++) {
                     for (int timeIndex = 0; timeIndex < timeCount; timeIndex++) {
-                        threeDimensionsRays[timeIndex, numberPiece, rayIndex] = rays[rayIndex][numberPiece, timeIndex];
+                        threeDimensionsRays[timeIndex,rayIndex, numberPiece] = rays[rayIndex][numberPiece, timeIndex];
                     }
                 }
             }
-
+            double[] time = getCurrentProfileTime();
             MWNumericArray m_frecResponse = (MWNumericArray)simulator.getFrequencyResponse(
                     new MWNumericArray(threeDimensionsRays),
                     frecCount,
-                    new MWNumericArray(getCurrentProfileTime())
+                    new MWNumericArray(time)
             );
-            frecResponse = (double[,])m_frecResponse.ToArray(MWArrayComponent.Real);
+            
 
-           // chart1.Series[0].ChartArea.Area
-          //  for (int i = 0; i < correlationLength; i++) {
-          //      chart1.Series[0].Points (correlation[i, 0]);
-          //  }
 
+            frecResponse[0] = (double[,])m_frecResponse.ToArray(MWArrayComponent.Real);
+            frecResponse[1] = (double[,])m_frecResponse.ToArray(MWArrayComponent.Real);
+           // double[,] realFR = (double[,])m_frecResponse.ToArray(MWArrayComponent.Real);
+           // double[,] imFR = (double[,])m_frecResponse.ToArray(MWArrayComponent.Imaginary);
+
+            updateChart(SeriesChartType.Column);
+
+            /*
+            
+            chart1.Series[0].IsXValueIndexed = true;
+
+            chart1.ChartAreas[0].Area3DStyle.Enable3D = true;
+
+            for (int i = 0; i < 100; i=i+20) {
+                for (int j = 0; j < 100; j+=20) {
+
+                    double numb = Math.Pow(Complex.Abs(new Complex(realFR[i, j], imFR[i, j])), 2);
+
+
+                    chart1.Series[i].Points.AddY(numb);
+                }
+                chart1.Series.Add(new System.Windows.Forms.DataVisualization.Charting.Series());
+                chart1.Series[0].ChartType = SeriesChartType.Column;
+                chart1.Series[0].Color = Color.FromArgb(123, 50, 8);
+                chart1.Series[0].IsXValueIndexed = true;
+            }
+
+             */
+  
             button6.Enabled = true;
         }
 
@@ -287,13 +351,31 @@ namespace ChannelSimulator
                 this.Cursor = Cursors.WaitCursor;
                 string fileName = saveFileDialog1.FileName;
                 List<string> lines = new List<string>();
-                int a = frecResponse.GetLength(0);
-                int b = frecResponse.GetLength(1);
+
+
+                int a = frecResponse[0].GetLength(0)-500;
+                int b = frecResponse[0].GetLength(1)-500;
+
+
+
+                string sep = "";
 
                 for (int i = 0; i < a; i++) {
                     string line = "";
                     for (int j = 0; j < b; j++) {
-                        line = line + frecResponse[i, j].ToString(CultureInfo.CreateSpecificCulture("en-GB"));
+
+                        if (frecResponse[1][i, j] > 0) {
+                            sep = "+";
+                        }
+                        else {
+                            sep = "";
+                        }
+
+                        line = line
+                            + frecResponse[0][i, j].ToString(CultureInfo.CreateSpecificCulture("en-GB"))
+                            + sep
+                            + frecResponse[1][i, j].ToString(CultureInfo.CreateSpecificCulture("en-GB"))
+                            + "i";
                         if (j != (b - 1)) {
                             line = line + ",";
                         }
@@ -307,11 +389,76 @@ namespace ChannelSimulator
 
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
         {
+            updateChart(SeriesChartType.Spline);
+
             signal = new List<double>();
             string[] stringSignal = File.ReadAllLines(openFileDialog1.FileName);
             string[] stringArraySignal = stringSignal[0].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (string str in stringArraySignal) {
-                signal.Add(Convert.ToDouble(str, CultureInfo.CreateSpecificCulture("en-GB")) / 2); //делим на 2. тест
+                signal.Add(Convert.ToDouble(str, CultureInfo.CreateSpecificCulture("en-GB"))); 
+            }
+
+            //Вывод данных
+            chart1.Series[0].Points.Clear();
+            chart1.Series[0].ChartType = SeriesChartType.Spline;
+
+            chart1.ChartAreas.Add("fff");
+
+            chart1.Series.Add(new System.Windows.Forms.DataVisualization.Charting.Series());
+            chart1.Series[1].ChartType = SeriesChartType.Spline;
+            chart1.Series[1].ChartArea = "fff";
+
+
+            chart1.Series[0].Name = "Входной сигнал";
+            chart1.Series[1].Name = "Выходной сигнал";
+
+            chart1.Legends.Add(new Legend("L1"));
+            chart1.Legends.Add(new Legend("L2"));
+            chart1.Series[0].Legend = "L1";
+            chart1.Series[1].Legend = "L2";
+
+            chart1.Legends[0].Alignment = System.Drawing.StringAlignment.Center;
+            chart1.Legends[0].DockedToChartArea = "ChartArea1";
+            chart1.Legends[0].Docking = Docking.Bottom;
+            chart1.Legends[0].IsDockedInsideChartArea = false;
+
+
+            chart1.Legends[1].Alignment = System.Drawing.StringAlignment.Center;
+            chart1.Legends[1].DockedToChartArea = "fff";
+            chart1.Legends[1].Docking = Docking.Bottom;
+            chart1.Legends[1].IsDockedInsideChartArea = false;
+
+            for (int i = 0; i < signal.Count; i++) {
+                chart1.Series[0].Points.AddY(signal[i]);
+            }
+
+            
+            /*
+            for (int i = 0; i < signal.Count; i++) {
+                signal[i] = signal[i] / 2;
+            }
+            */
+
+  
+            int raysCount = getCurrentProfile().Length;
+            int timeCount = Convert.ToInt32(textBox4.Text);
+
+            // Почему у нас в начале идёт время- ??? 
+            double[, ,] threeDimensionsRays = new double[timeCount, raysCount, 2];
+
+            for (int rayIndex = 0; rayIndex < raysCount; rayIndex++) {
+                for (int numberPiece = 0; numberPiece < 2; numberPiece++) {
+                    for (int timeIndex = 0; timeIndex < timeCount; timeIndex++) {
+                        threeDimensionsRays[timeIndex, rayIndex, numberPiece] = rays[rayIndex][numberPiece, timeIndex];
+                    }
+                }
+            }
+
+            MWNumericArray m_outputSignal = (MWNumericArray)simulator.processSignal(new MWNumericArray(signal.ToArray()), new MWNumericArray(threeDimensionsRays));
+            double[,] outputSignal = (double[,])m_outputSignal.ToArray(MWArrayComponent.Real);
+
+            for (int i = 0; i < signal.Count; i++) {
+                chart1.Series[1].Points.AddY(outputSignal[0,i]);
             }
            
         }

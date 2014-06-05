@@ -214,3 +214,6 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 *.asv
+Matlab/dll/MATLABchannelSimulator_overview.html
+Matlab/dll/readme.txt
+Matlab/dll/MATLABchannelSimulatorNative.dll

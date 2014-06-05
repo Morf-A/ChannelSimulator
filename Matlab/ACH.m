@@ -42,8 +42,9 @@ time = [0, 50, 120, 200, 230, 500, 1600, 2300, 5000];
 
 ach = getFrequencyResponse(mu,999,time);
 
-plot(erfc(abs(ach(:,1)).^2*0.5)); %вероятность ошибки.
-surf(ach(1:100,1:200).*conj(ach(1:100,1:200)));
+%plot(erfc(abs(ach(:,1)).^2*0.5)); %вероятность ошибки.
+%surf(ach(1:100,1:200).*conj(ach(1:100,1:200)));
+
 %csv right. Передать файл и название массива
 
 %surf(real(ach));
