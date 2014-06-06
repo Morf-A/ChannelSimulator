@@ -10,17 +10,17 @@ sigma = sqrt(10.^(power./10)); % вычислим дисперсию
 %Задаём коэффициенты, согласно MEDS
 
 %зададим коэффициенты усиления
-c = createGainsByJM(sigma/sqrt(2), N(1));
+c = createGainsByJM(sigma/sqrt(2), N(1)-1);
 
 %зададим частоту доплеровского смещения
 
 %fray=800*10^6; %частота луча. (Гц)
 %fmax = fray/(3*10^8); %Максимальное доплеровское смещение
 fmax = 300;
-f = createFrequenciesByJM(fmax, N(1));
+f = createFrequenciesByJM(fmax, N(1)-1);
 
 % зададим фазы
-teta = createPhasesByJM(N(1));
+teta = createPhasesByJM(N(1)-1);
 
 %Частота дискретизации 
 %Ts = 5000*10^(-6); 
@@ -37,19 +37,17 @@ srednee = zeros (7,1);
 for s=1:7
     for k=1:K
         srednee(s)=srednee(s)+abs(mu(s,1,k)+1j*mu(s,2,k)).^2;
-        
     end
     srednee(s)=srednee(s)/(K);
 end
   
- disp(srednee);
- disp(sigma.^2);
+% disp(srednee);
+% disp(sigma.^2);
 
 
 x=squeeze(mu(1,1,:)+1j*mu(1,2,:));
 
  M=30;
- R=correlation(x,M);
 
  x1=squeeze(mu(1,1,:));
  x2=squeeze(mu(1,2,:));
