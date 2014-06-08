@@ -9,7 +9,7 @@ using System.Windows.Forms;
 using System.Numerics;
 using System.IO;
 using System.Globalization;
-
+using System.Text.RegularExpressions;
 
 using System.Windows.Forms.DataVisualization.Charting;
 
@@ -21,7 +21,7 @@ namespace ChannelSimulator
 {
     public partial class Form1 : Form
     {
-
+        
         //public double[] profileEPA = {1.0000, 0.8913, 0.7943, 0.7079, 0.3981, 0.1380, 0.0912};
 
         public double[] profileEPA = {0.7071, 0.6302, 0.5617, 0.5006, 0.2815, 0.0976, 0.0645};
@@ -35,8 +35,12 @@ namespace ChannelSimulator
         public double[][,] rays;
         public double[][,] frecResponse = new double[2][,];
         public List<double> signal;
+        public double[][] complexSignal = new double[2][];
 
         public string sinusoidsNumberPred;
+        public string kPred;
+        public string fdPred;
+        public string tsPred;
 
         public MSimulator simulator;
 
@@ -45,6 +49,9 @@ namespace ChannelSimulator
             InitializeComponent();
             comboBox1.SelectedIndex = 0;
             sinusoidsNumberPred = textBox3.Text;
+            kPred = textBox4.Text;
+            fdPred = textBox1.Text;
+            tsPred = textBox2.Text;
             updateSinusoidsNumber();          
             simulator = new MSimulator();
         }
@@ -225,6 +232,8 @@ namespace ChannelSimulator
                 averagePower[rayIndex] = averagePower[rayIndex] / timeCount;
 
                 chart1.Series[0].Points.AddY(averagePower[rayIndex]);
+                chart1.ChartAreas.First().AxisX.Title = "Лучи";
+                chart1.ChartAreas.First().AxisY.Title = "Мощность луча";
             }
 
         }
@@ -248,6 +257,8 @@ namespace ChannelSimulator
         private void button3_Click(object sender, EventArgs e)
         {
             updateChart(SeriesChartType.Spline);
+            chart1.ChartAreas.First().AxisX.Title = "Частота";
+            chart1.ChartAreas.First().AxisY.Title = "Значение";
 
             int correlationLength = 30;
             int rayLength = rays[0].Length;
@@ -266,6 +277,8 @@ namespace ChannelSimulator
         private void button4_Click(object sender, EventArgs e)
         {
             updateChart(SeriesChartType.Spline);
+            chart1.ChartAreas.First().AxisX.Title = "Частота";
+            chart1.ChartAreas.First().AxisY.Title = "Мощность";
 
             int correlationLength = 90;
             int rayLength = rays[0].Length;
@@ -275,9 +288,15 @@ namespace ChannelSimulator
             }
             MWNumericArray m_correlation = (MWNumericArray)simulator.psdd(new MWNumericArray(ray), correlationLength);
             double[,] correlation = (double[,])m_correlation.ToArray(MWArrayComponent.Real);
+
+            double fd = 1/Convert.ToDouble(textBox2.Text);
+            double step = fd / correlationLength;
+            double tempStep = 0;
             for (int i = 0; i < correlationLength; i++) {
-                chart1.Series[0].Points.AddY(correlation[i, 0]);
+                chart1.Series[0].Points.AddXY(Math.Round(tempStep), correlation[i, 0]);
+                tempStep = tempStep + step;
             }
+
         }
 
         private void button5_Click(object sender, EventArgs e)
@@ -301,7 +320,8 @@ namespace ChannelSimulator
             MWNumericArray m_frecResponse = (MWNumericArray)simulator.getFrequencyResponse(
                     new MWNumericArray(threeDimensionsRays),
                     frecCount,
-                    new MWNumericArray(time)
+                    new MWNumericArray(time),
+                    Convert.ToDouble(textBox2.Text)
             );
             
 
@@ -392,10 +412,20 @@ namespace ChannelSimulator
             updateChart(SeriesChartType.Spline);
 
             signal = new List<double>();
+            List<double> signalR = new List<double>();
+            List<double> signalI = new List<double>();
+
             string[] stringSignal = File.ReadAllLines(openFileDialog1.FileName);
             string[] stringArraySignal = stringSignal[0].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (string str in stringArraySignal) {
-                signal.Add(Convert.ToDouble(str, CultureInfo.CreateSpecificCulture("en-GB"))); 
+
+                Regex rgx = new Regex("(.+)([\\|+-].*)i", RegexOptions.IgnoreCase);
+                MatchCollection matches = rgx.Matches(str);
+
+                signalR.Add(Convert.ToDouble(matches[0].Groups[1].Value));
+                signalI.Add(Convert.ToDouble(matches[0].Groups[2].Value));
+                           
+               // signal.Add(Convert.ToDouble(str, CultureInfo.CreateSpecificCulture("en-GB"))); 
             }
 
             //Вывод данных
@@ -429,10 +459,15 @@ namespace ChannelSimulator
             chart1.Legends[1].IsDockedInsideChartArea = false;
 
             for (int i = 0; i < signal.Count; i++) {
-                chart1.Series[0].Points.AddY(signal[i]);
+                chart1.Series[0].Points.AddY(signalR[i]);
             }
 
-            
+            chart1.ChartAreas[0].AxisX.Title = "Время";
+            chart1.ChartAreas[0].AxisY.Title = "Сила";
+
+            chart1.ChartAreas[1].AxisX.Title = "Время";
+            chart1.ChartAreas[0].AxisY.Title = "Сила";
+
             /*
             for (int i = 0; i < signal.Count; i++) {
                 signal[i] = signal[i] / 2;
@@ -479,6 +514,73 @@ namespace ChannelSimulator
                 File.WriteAllLines(fileName, line);
             }
             this.Cursor = Cursors.Arrow;
+        }
+
+        private void textBox4_TextChanged(object sender, EventArgs e)
+        {
+
+            try
+            {
+                if (Convert.ToInt32(textBox4.Text) > 4 || Convert.ToInt32(textBox4.Text) < 0)
+                {
+                    throw new Exception();
+                }
+                button1.Enabled = true;
+                kPred = textBox4.Text;
+            }
+            catch
+            {
+                if (textBox4.Text == "")
+                {
+                    button1.Enabled = false;
+                    kPred = "";
+                }
+                else
+                {
+                    textBox4.Text = kPred;
+                }
+            }
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (textBox1.Text.Length > 3 || Convert.ToInt32(textBox1.Text) < 0)
+                {
+                    throw new Exception();
+                }
+                button1.Enabled = true;
+                fdPred = textBox1.Text;
+            }
+            catch
+            {
+                if (textBox1.Text == "")
+                {
+                    button1.Enabled = false;
+                    fdPred = "";
+                }
+                else
+                {
+                    textBox1.Text = fdPred;
+                }
+            }
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (Convert.ToInt32(textBox2.Text) < 0 || Convert.ToInt32(textBox2.Text) > 500)
+                {
+                    textBox2.Text = tsPred;
+                }
+                tsPred = textBox2.Text;
+            }
+            catch
+            {
+                textBox2.Text = tsPred;
+            }
         }
     }
 }

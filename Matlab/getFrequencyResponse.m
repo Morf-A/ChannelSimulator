@@ -1,4 +1,4 @@
-function ach = getFrequencyResponse(channel, F, time)
+function ach = getFrequencyResponse(channel, F, time, Ts)
  K=size(channel,3);
  rays=size(channel,1);
 ach = zeros(F,K);
@@ -10,8 +10,12 @@ ach = zeros(F,K);
             end
         end
     end
-    
-surf(ach(1:F/10,1:K/10).*conj(ach(1:F/10,1:K/10)));
-
+[X,Y] = meshgrid(0:Ts:Ts*(100-1),0:15000:15000*(100-1));
+surf(X,Y,ach(1:100,1:100).*conj(ach(1:100,1:100)));
+ylabel('частота, √ц', 'FontSize', 14);
+xlabel('модельное врем€, с', 'FontSize', 14);
+zlabel('|H|^2', 'FontSize', 14);
+title('„астотный отклик канала', 'FontSize', 14);
+%plot(ach(:,1).*conj(ach(:,1))) ;
 end
 
