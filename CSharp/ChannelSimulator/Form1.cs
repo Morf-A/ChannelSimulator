@@ -34,13 +34,15 @@ namespace ChannelSimulator
 
         public double[][,] rays;
         public double[][,] frecResponse = new double[2][,];
-        public List<double> signal;
-        public double[][] complexSignal = new double[2][];
+
+        List<double> signalR;
+        List<double> signalI;
+
+        double[,] outputSignalR;
+        double[,] outputSignalI;
 
         public string sinusoidsNumberPred;
         public string kPred;
-        public string fdPred;
-        public string tsPred;
 
         public MSimulator simulator;
 
@@ -50,8 +52,7 @@ namespace ChannelSimulator
             comboBox1.SelectedIndex = 0;
             sinusoidsNumberPred = textBox3.Text;
             kPred = textBox4.Text;
-            fdPred = textBox1.Text;
-            tsPred = textBox2.Text;
+
             updateSinusoidsNumber();          
             simulator = new MSimulator();
         }
@@ -74,7 +75,7 @@ namespace ChannelSimulator
                 textBox5.Text = Convert.ToString(realSinusoidNumber);
                 button1.Enabled = true;
                 sinusoidsNumberPred = textBox3.Text;
-            } catch (Exception e) {
+            } catch{
                 if (textBox3.Text == "") {
                     button1.Enabled = false;
                     sinusoidsNumberPred = "";
@@ -171,7 +172,19 @@ namespace ChannelSimulator
             }
             return result;
         }
-        
+
+        public void setMinMax()
+        {
+            // Количество моментов времени
+            if (Convert.ToInt32(textBox4.Text) < 100) {
+                textBox4.Text = "100";
+            }
+
+            // Количество синусоид
+            if (Convert.ToInt32(textBox3.Text) < 5) {
+                textBox3.Text = "5";
+            }
+        }
         
         private void button1_Click(object sender, EventArgs e)
         {
@@ -179,7 +192,13 @@ namespace ChannelSimulator
             button3.Enabled = true;
             button4.Enabled = true;
             button5.Enabled = true;
-            //button8.Enabled = true;
+
+            button6.Enabled = false;
+            button7.Enabled = false;
+            button8.Enabled = false;
+
+            // Зададим минимум и максимум параметров.
+            setMinMax();
 
             updateChart(SeriesChartType.Column);
 
@@ -257,8 +276,8 @@ namespace ChannelSimulator
         private void button3_Click(object sender, EventArgs e)
         {
             updateChart(SeriesChartType.Spline);
-            chart1.ChartAreas.First().AxisX.Title = "Частота";
-            chart1.ChartAreas.First().AxisY.Title = "Значение";
+            chart1.ChartAreas.First().AxisX.Title = "Время";
+            chart1.ChartAreas.First().AxisY.Title = "Значение корелляции";
 
             int correlationLength = 30;
             int rayLength = rays[0].Length;
@@ -373,10 +392,8 @@ namespace ChannelSimulator
                 List<string> lines = new List<string>();
 
 
-                int a = frecResponse[0].GetLength(0)-500;
-                int b = frecResponse[0].GetLength(1)-500;
-
-
+                int a = frecResponse[0].GetLength(0)/2;
+                int b = frecResponse[0].GetLength(1)/2;
 
                 string sep = "";
 
@@ -411,9 +428,9 @@ namespace ChannelSimulator
         {
             updateChart(SeriesChartType.Spline);
 
-            signal = new List<double>();
-            List<double> signalR = new List<double>();
-            List<double> signalI = new List<double>();
+     
+            signalR = new List<double>();
+            signalI = new List<double>();
 
             string[] stringSignal = File.ReadAllLines(openFileDialog1.FileName);
             string[] stringArraySignal = stringSignal[0].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
@@ -422,8 +439,8 @@ namespace ChannelSimulator
                 Regex rgx = new Regex("(.+)([\\|+-].*)i", RegexOptions.IgnoreCase);
                 MatchCollection matches = rgx.Matches(str);
 
-                signalR.Add(Convert.ToDouble(matches[0].Groups[1].Value));
-                signalI.Add(Convert.ToDouble(matches[0].Groups[2].Value));
+                signalR.Add(Convert.ToDouble(matches[0].Groups[1].Value, CultureInfo.CreateSpecificCulture("en-GB")));
+                signalI.Add(Convert.ToDouble(matches[0].Groups[2].Value, CultureInfo.CreateSpecificCulture("en-GB")));
                            
                // signal.Add(Convert.ToDouble(str, CultureInfo.CreateSpecificCulture("en-GB"))); 
             }
@@ -450,23 +467,26 @@ namespace ChannelSimulator
             chart1.Legends[0].Alignment = System.Drawing.StringAlignment.Center;
             chart1.Legends[0].DockedToChartArea = "ChartArea1";
             chart1.Legends[0].Docking = Docking.Bottom;
-            chart1.Legends[0].IsDockedInsideChartArea = false;
+            chart1.Legends[0].IsDockedInsideChartArea = true;
 
 
             chart1.Legends[1].Alignment = System.Drawing.StringAlignment.Center;
             chart1.Legends[1].DockedToChartArea = "fff";
             chart1.Legends[1].Docking = Docking.Bottom;
-            chart1.Legends[1].IsDockedInsideChartArea = false;
+            chart1.Legends[1].IsDockedInsideChartArea = true;
 
-            for (int i = 0; i < signal.Count; i++) {
+
+            // Строим входной сигнал
+            int len = Math.Min(signalR.Count, 300);
+            for (int i = 0; i < len; i++) {
                 chart1.Series[0].Points.AddY(signalR[i]);
             }
 
             chart1.ChartAreas[0].AxisX.Title = "Время";
-            chart1.ChartAreas[0].AxisY.Title = "Сила";
+            chart1.ChartAreas[0].AxisY.Title = "Мощность";
 
             chart1.ChartAreas[1].AxisX.Title = "Время";
-            chart1.ChartAreas[0].AxisY.Title = "Сила";
+            chart1.ChartAreas[1].AxisY.Title = "Мощность";
 
             /*
             for (int i = 0; i < signal.Count; i++) {
@@ -489,29 +509,54 @@ namespace ChannelSimulator
                 }
             }
 
-            MWNumericArray m_outputSignal = (MWNumericArray)simulator.processSignal(new MWNumericArray(signal.ToArray()), new MWNumericArray(threeDimensionsRays));
-            double[,] outputSignal = (double[,])m_outputSignal.ToArray(MWArrayComponent.Real);
-
-            for (int i = 0; i < signal.Count; i++) {
-                chart1.Series[1].Points.AddY(outputSignal[0,i]);
+            MWNumericArray m_outputSignal = (MWNumericArray)simulator.processSignal(
+                new MWNumericArray(signalR.ToArray(), signalI.ToArray()),
+                new MWNumericArray(threeDimensionsRays),
+                new MWNumericArray(getCurrentProfileTime()),
+                1
+            );
+            outputSignalR = (double[,])m_outputSignal.ToArray(MWArrayComponent.Real);
+            outputSignalI = (double[,])m_outputSignal.ToArray(MWArrayComponent.Imaginary);
+            // Строим выходной сигнал
+            for (int i = 0; i < len; i++) {
+                chart1.Series[1].Points.AddY(outputSignalR[i,0]);
             }
-           
+
+            button8.Enabled = true;
         }
 
         private void button7_Click(object sender, EventArgs e)
         {
+
             if (saveFileDialog2.ShowDialog() == DialogResult.OK) {
+                // Код по сохранению...
                 this.Cursor = Cursors.WaitCursor;
                 string fileName = saveFileDialog2.FileName;
-                int a = signal.Count;
-                string[] line = {""};
+                List<string> lines = new List<string>();
+
+
+                string sep = "";
+                int a = outputSignalR.Length;
+                string line = "";
                 for (int i = 0; i < a; i++) {
-                    line[0] = line[0] + signal[i].ToString(CultureInfo.CreateSpecificCulture("en-GB"));
-                    if (i != (a - 1)) {
-                        line[0] = line[0] + ",";
+                    if (outputSignalI[i,0] > 0) {
+                            sep = "+";
                     }
+                    else {
+                        sep = "";
+                    }
+                    line = line
+                        + outputSignalR[i,0].ToString(CultureInfo.CreateSpecificCulture("en-GB"))
+                        + sep
+                        + outputSignalI[i,0].ToString(CultureInfo.CreateSpecificCulture("en-GB"))
+                        + "i";
+                    if (i != (a - 1)) {
+                        line = line + ",";
+                    }
+                    
                 }
-                File.WriteAllLines(fileName, line);
+                lines.Add(line);
+                File.WriteAllLines(fileName, lines);
             }
             this.Cursor = Cursors.Arrow;
         }
@@ -521,7 +566,7 @@ namespace ChannelSimulator
 
             try
             {
-                if (Convert.ToInt32(textBox4.Text) > 4 || Convert.ToInt32(textBox4.Text) < 0)
+                if (Convert.ToInt32(textBox4.Text) > 10000 || Convert.ToInt32(textBox4.Text) < 0)
                 {
                     throw new Exception();
                 }
@@ -542,45 +587,9 @@ namespace ChannelSimulator
             }
         }
 
-        private void textBox1_TextChanged(object sender, EventArgs e)
+        private void button8_Click(object sender, EventArgs e)
         {
-            try
-            {
-                if (textBox1.Text.Length > 3 || Convert.ToInt32(textBox1.Text) < 0)
-                {
-                    throw new Exception();
-                }
-                button1.Enabled = true;
-                fdPred = textBox1.Text;
-            }
-            catch
-            {
-                if (textBox1.Text == "")
-                {
-                    button1.Enabled = false;
-                    fdPred = "";
-                }
-                else
-                {
-                    textBox1.Text = fdPred;
-                }
-            }
-        }
-
-        private void textBox2_TextChanged(object sender, EventArgs e)
-        {
-            try
-            {
-                if (Convert.ToInt32(textBox2.Text) < 0 || Convert.ToInt32(textBox2.Text) > 500)
-                {
-                    textBox2.Text = tsPred;
-                }
-                tsPred = textBox2.Text;
-            }
-            catch
-            {
-                textBox2.Text = tsPred;
-            }
+                simulator.getPwelch(new MWNumericArray(outputSignalR, outputSignalI));
         }
     }
 }

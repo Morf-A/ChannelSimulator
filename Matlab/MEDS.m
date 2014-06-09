@@ -5,9 +5,10 @@ mu = zeros(rays, 2, K); %таблица коэффициентов
 
 %таблица мощностей
 
-%power = [0 -1 -2 -3 -8 -17.2 -20.8]; %EPA
+power = [0 -1 -2 -3 -8 -17.2 -20.8]; %EPA
 %power = [-1,-1,-1,0,0,0,-3,-5,-7]; %ETU
-power = [0, -1.5, -1.4, -3.6, -0.6, -9.1, -7.0, -12.0, -16.9]; %EVA
+%power = [0, -1.5, -1.4, -3.6, -0.6, -9.1, -7.0, -12.0, -16.9]; %EVA
+
 sigma = sqrt(10.^(power./10)); % вычислим дисперсию
 sigma = sigma/sqrt(2);
 %Задаём коэффициенты, согласно MEDS
@@ -29,9 +30,10 @@ teta = createPhasesByMEDS(N(1));
 
 Td = 1/30.72*10^-6; % Частота дискретизации сигнала
 %Частота дискретизации 
-%Ts = 5000*10^(-6); 
-Ts=Td*100;
-
+ 
+%Ts=Td*100;
+Ts = 1/5000;
+%Ts = 0.000003225;
 
 
 for z=1:rays
@@ -39,22 +41,26 @@ for z=1:rays
 end
 
 
-%signal=csvread('D:\complexsignal.csv');
-signal = randn(2000,1);
+signal=csvread('C:\Users\Morf\Desktop\signal.csv');
+
+%signal = randn(1,2000)+1j.*randn(1,2000);
 %time = [0, 50, 120, 200, 230, 500, 1600, 2300, 5000]; % ETU
 time = [0, 30, 70, 90, 110, 190, 410]; %EPA
 output = processSignal(signal,mu,time,Td);
 
-%pwelch(output);
-
 % plot(real(signal));
 % hold on;
 % plot(real(output),'r-.');
+
+pwelch(output);
+
+
 %csvwrite(output,'D:\ouput.csv');
 
-ach = getFrequencyResponse(mu,999,time,Ts);
+%ach = getFrequencyResponse(mu,999,time,Ts);
 
-plot(ach(:,1).*conj(ach(:,1)));
+%plot(ach(:,1).*conj(ach(:,1)));
+
 % srednee = zeros (7,1);
 % for s=1:7
 %     for k=1:K
